@@ -1,29 +1,32 @@
-from dataclasses import dataclass
-import constants
+from dataclasses import dataclass, field
+from dataclasses_json import dataclass_json
+import src.constants as constants
 
+@dataclass_json
 @dataclass
 class Coordinates:
     '''
         A class which represents a rectangular region of an image. 
     '''
-    left:int
-    upper:int
-    right:int
-    lower:int
+    left              : int
+    upper             : int
+    right             : int
+    lower             : int
+    sideRepresented   : constants.GameSide
 
-    def flip(self,axis:str) -> Coordinates:
-        if axis == 'y':
-            return Coordinates(constants.Resolution.WIDTH-self.right, self.upper, constants.Resolution.WIDTH-self.left, self.lower)
-        elif axis == 'x':
-            return Coordinates(self.right, constants.Resolution.HEIGHT-self.lower, self.left, constants.Resolution.HEIGHT-self.upper)
+    def flip(self):
+        if self.sideRepresented in [constants.GameSide.LEFT, constants.GameSide.RIGHT]:
+            return Coordinates(constants.RESOLUTION.WIDTH - self.right, constants.RESOLUTION.WIDTH - self.lower, self.left, self.upper)
         else:
-            raise ValueError('Axis must be either `x` or `y`')
+            raise ValueError(f'`sideRepresented`=`{self.sideRepresented}` cannot be flipped.')
         return None
 
+    def box(self) -> tuple:
+        return (self.left, self.upper, self.right, self.lower)
 
-        
+@dataclass_json 
 @dataclass
-class KeyItemDetails:
+class KeyItemDetail:
     '''
         A class representing details of KeyItems.
     '''
@@ -36,7 +39,7 @@ class KeyItemDetails:
     '''
         The name of the key item.
     '''
-    name:constants.KeyItem
+    keyItem:constants.KeyItem
 
     '''
         The side represented by this item.
@@ -58,3 +61,23 @@ class KeyItemDetails:
         If looking up stored images, the maximum distance away the image should be to be considered a match.
     '''
     maximumDistanceForStoredImages:int=field(default_factory=lambda: 0)
+      
+@dataclass_json
+@dataclass
+class GamePhaseDetail:
+    gamePhase         : constants.GamePhase
+    keyItemDetails    : list[KeyItemDetail]
+    identifyingKeyItem: KeyItemDetail
+
+@dataclass_json
+@dataclass
+class ParsingConfig:
+    videoOrImageToParsePath         : str
+    FileType                        : constants.FileType
+    gamePhaseDetails                : list[GamePhaseDetail]
+    imageCacheFolderPath            : str
+    resolution                      : constants.DefaultResolution = constants.RESOLUTION
+    processEveryXSecondsFromVideo   : int = 4
+    fpsOfInputVideo                 : int = 60
+    outputFolder                    : str=None
+    debug                           : bool=False

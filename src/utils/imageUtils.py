@@ -1,6 +1,7 @@
 import cv2
+from PIL import Image
 
-def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputPath:str='', shouldOutputToFile:bool=False) -> list:
+def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputFolder:str=None) -> list:
     vidcap = cv2.VideoCapture(pathToVideo)
     success,image = vidcap.read()
     count = 0
@@ -9,8 +10,8 @@ def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputP
     while vidcap.isOpened():
         ret, frame = vidcap.read()
         if ret:
-            if shouldOutputToFile:
-                cv2.imwrite(f'{outputPath}/frame{count}.jpg', frame)
+            if outputFolder:
+                cv2.imwrite(f'{outputFolder}/getFramesFromVideo/frame{count}.jpg', frame)
             retVal.append(frame)
             count += fps*everyXSeconds # i.e. at 30 fps, this advances one second
             vidcap.set(cv2.CAP_PROP_POS_FRAMES, count)
@@ -19,3 +20,6 @@ def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputP
             break
     
     return retVal
+
+def getImage(filePath:str):
+    return Image.open(filePath)
