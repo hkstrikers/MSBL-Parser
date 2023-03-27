@@ -13,14 +13,36 @@ class GamePhase(str, Enum):
     IN_GAME = 'IN_GAME'
 
     '''
-        Phase of the game where a side has just scored.
+        Phase of the game where the left hand side has just scored.
     '''
-    GOAL_SCORED = 'GOAL_SCORED'
+    GOAL_SCORED_LEFT_HAND_SIDE = 'GOAL_SCORED_LEFT_HAND_SIDE'
 
     '''
-        Phase of the game after the game has ended.
+        Phase of the game where the right hand side has just scored.
     '''
-    IN_GAME_FINAL_RESULT = 'IN_GAME_FINAL_RESULT'
+    GOAL_SCORED_RIGHT_HAND_SIDE = 'GOAL_SCORED_RIGHT_HAND_SIDE'
+
+    '''
+        Phase of the game after the game has ended and left hand side won
+    '''
+    IN_GAME_FINAL_RESULT_LEFT_HAND_SIDE = 'IN_GAME_FINAL_RESULT_LEFT_HAND_SIDE'
+
+    '''
+        Phase of the game after the game has ended and right hand side won
+    '''
+    IN_GAME_FINAL_RESULT_RIGHT_HAND_SIDE = 'IN_GAME_FINAL_RESULT_RIGHT_HAND_SIDE'
+
+    '''
+        Phase of the game showing the scoreboard after the game has finished.
+    '''
+    END_GAME_SCOREBOARD = 'SCOREBOARD'
+
+
+    '''
+        DEFAULT GAME PHASE
+    '''
+    UNKNOWN = 'UKNOWN'
+
 
 class KeyItem(str, Enum):
     '''
@@ -46,13 +68,14 @@ class KeyItem(str, Enum):
         Represents the text the flavor text the game presents during a 'GOAL_SCORED*' phase or during a 'IN_GAME_FINAL_RESULT*' phase.
     '''
     FLAVOR_TEXT = 'FLAVOR_TEXT'
+    
 
 class GameSide(str, Enum):
     '''
         Represents whether a KeyItem is associated with the left-hand side, right-hand side, or none (e.g., the time doesn't belong to a side).
     '''
-    LEFT    = 'LEFT_HAND_SIDE'
-    RIGHT   = 'RIGHT_HAND_SIDE'
+    LEFT    = 'LEFT'
+    RIGHT   = 'RIGHT'
     NONE    = 'NONE'
 
 class DefaultResolution:
@@ -63,4 +86,4 @@ class FileType(str,Enum):
     VIDEO = 'VIDEO'
     IMAGE = 'IMAGE'
 
-RESOLUTION = DefaultResolution()
+RESOLUTION = DefaultResolution()  
