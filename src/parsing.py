@@ -119,7 +119,7 @@ def drawBoxes(im:Image, keyItems:list[KeyItemDetail], outlineColor:str='blue') -
         draw.rectangle(keyItem.coords.box(), outline=outlineColor)
     return im
 
-def imageTransformationForScore(im:Image) -> Image:
+def imageTransformationForScore(im:np.array) -> Image:
     tmp = im
     tmp = cv2.cvtColor(np.array(tmp), cv2.COLOR_BGR2GRAY)
     (th, newimg) = cv2.threshold(tmp, 215, 255, cv2.THRESH_BINARY)
@@ -132,21 +132,26 @@ def imageTransformationForScore(im:Image) -> Image:
     erosion = cv2.erode(opening,kernel,iterations = 2)
     return Image.fromarray(255-erosion)
 
-def imageTransformation(im:Image, type:constants.KeyItem) -> list:
-    if type in {constants.KeyItem.SCORE}:
-        return imageTransformationForScore(im)
-    elif type in {constants.KeyItem.TIME}:
+def imageTransformation(im:Image, type:KeyItemDetail) -> Image:
+    cv2Im = np.array(im)
+    if type.hsvFilters is not None:
+        lower = np.array(type.hsvFilters[0])
+        upper = np.array(type.hsvFilters[1])
+        cv2Im = cv2.inRange(cv2Im, lower, upper)
+    if type.keyItem in {constants.KeyItem.SCORE}:
+        return imageTransformationForScore(cv2Im)
+    elif type.keyItem in {constants.KeyItem.TIME}:
         kernel = np.ones((3,3),np.uint8)
-        erosion = cv2.erode(np.array(im),kernel,iterations = 1)
+        erosion = cv2.erode(cv2Im,kernel,iterations = 1)
         im1 = Image.fromarray(erosion)
         return im1
-    elif type in {constants.KeyItem.TEAM_NAME}:
-        tmp = cv2.cvtColor(np.array(im), cv2.COLOR_BGR2GRAY)
+    elif type.keyItem in {constants.KeyItem.TEAM_NAME, constants.KeyItem.SCOREBOARD_PASSES_CHECK}:
+        tmp = cv2.cvtColor(cv2Im, cv2.COLOR_BGR2GRAY)
         (th, newimg) = cv2.threshold(tmp, 50, 255, cv2.THRESH_BINARY)
         return Image.fromarray(newimg)
     else:
         print('No transformation found')
-        return im
+        return Image.fromarray(cv2Im)
 
 @dataclass
 class ParsingResult:
@@ -399,6 +404,29 @@ def runOcrOnImage(im:Image, gamePhase:constants.GamePhase, keyItemDetail:KeyItem
         res = api.GetUTF8Text()
         return re.sub(r'\n', '', res), api.AllWordConfidences()
 
+def tryParseKeyItem(im:Image, gamePhaseDetail:GamePhaseDetail, keyItem:KeyItemDetail, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False,  storedImageCache:ImageStore=None, displayImages:bool=False) -> ParsingResult:
+    box = keyItem.coords.box()
+    cropped = im.crop(box)
+    if debug:
+        print(f'[{gamePhaseDetail.gamePhase}]: Outputting cropped image for {keyItem.keyItem} side {keyItem.side}, box={box}')
+        if displayImages:
+            display(cropped)
+    transformed = None
+    try:
+        transformed = imageTransformation(cropped, keyItem) if keyItem.shouldApplyImageTransformation else cropped
+    except Exception as err:
+        print(f'[{gamePhaseDetail.gamePhase}]:  Exception encountered when trying to transform image for {keyItem.keyItem} side {keyItem.side}')
+        raise err
+    parsedVal, confidences = runOcrOnImage(transformed, gamePhaseDetail.gamePhase, keyItem, storedImageCache=storedImageCache, debug=debug)
+    parsingResult = ParsingResult(image=cropped, parsedValue=parsedVal, confidences=confidences)
+    if debug:
+        display(f'[{gamePhaseDetail.gamePhase}]:  ParsedValue: `{parsedVal}`')
+        display(f'[{gamePhaseDetail.gamePhase}]:  Confidences: {confidences}')
+        if displayImages:
+            display(f'[{gamePhaseDetail.gamePhase}]:  Image parsed:')
+            display(transformed)
+    return parsingResult
+
 
 def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False,  storedImageCache:ImageStore=None, displayImages:bool=False) -> ParsedImage:
     parsedImage = ParsedImage(gamePhaseDetail.gamePhase, im, time, gameSettings=gameSettings)
@@ -406,38 +434,30 @@ def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSet
         display(f"[{gamePhaseDetail.gamePhase}]:  Extracting the following areas from the image:")
         #display(drawBoxes(im.copy(), gamePhaseDetail.keyItemDetails))
     for keyItem in gamePhaseDetail.getKeyItemDetails():
-        box = keyItem.coords.box()
-        cropped = im.crop(box)
-        if debug:
-            print(f'[{gamePhaseDetail.gamePhase}]: Outputting cropped image for {keyItem.keyItem} side {keyItem.side}, box={box}')
-            if displayImages:
-                display(cropped)
-        transformed = None
+        parsingResult = tryParseKeyItem(im, gamePhaseDetail, keyItem, gameSettings, debug, ignoreErrors, storedImageCache, displayImages)
+
+        typedValue = None
         try:
-            transformed = imageTransformation(cropped, keyItem.keyItem)
-        except Exception as err:
-            print(f'[{gamePhaseDetail.gamePhase}]:  Exception encountered when trying to transform image for {keyItem.keyItem} side {keyItem.side}')
-            raise err
-        parsedVal, confidences = runOcrOnImage(transformed, gamePhaseDetail.gamePhase, keyItem, storedImageCache=storedImageCache, debug=debug)
-        parsingResult = ParsingResult(image=cropped, parsedValue=parsedVal, confidences=confidences)
-        if debug:
-            display(f'[{gamePhaseDetail.gamePhase}]:  ParsedValue: `{parsedVal}`')
-            display(f'[{gamePhaseDetail.gamePhase}]:  Confidences: {confidences}')
-            if displayImages:
-                display(f'[{gamePhaseDetail.gamePhase}]:  Image parsed:')
-                display(transformed)
-        try:
-            parsingResult.parseToActualValue(gamePhase=gamePhaseDetail.gamePhase, keyItem=keyItem.keyItem, gameSettings=gameSettings)
+            typedValue = parsingResult.parseToActualValue(gamePhase=gamePhaseDetail.gamePhase, keyItem=keyItem.keyItem, gameSettings=gameSettings)
         except Exception as err:
             if debug:
-                print(f'[{gamePhaseDetail.gamePhase}]: Exception when parsing {keyItem.keyItem}. Text=`{parsedVal}`')
-            if ignoreErrors:
-                parsedImage.add(keyItem=keyItem, parsingResult=parsingResult)
-                continue        
+                print(f'[{gamePhaseDetail.gamePhase}]: Exception when parsing {keyItem.keyItem}. Text=`{parsingResult.parsedValue}`')
             if gamePhaseDetail.identifyingKeyItem[0] == keyItem.keyItem and gamePhaseDetail.identifyingKeyItem[1] == keyItem.side:
-                print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsedVal}`')
+                print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsingResult.parsedValue}`')
                 print(f'[{gamePhaseDetail.gamePhase}]:  {err}')
-                return None, False
+                return None, False       
+            if keyItem.keyItem == constants.KeyItem.SCORE and gamePhaseDetail.gamePhase == constants.GamePhase.END_GAME_SCOREBOARD:
+                if debug:
+                    print('Retrying SCORE for scoreboard with no transformation...')
+                keyItem.shouldApplyImageTransformation = False
+                parsingResult = tryParseKeyItem(im, gamePhaseDetail, keyItem, gameSettings, debug, ignoreErrors, storedImageCache, displayImages)
+        if gamePhaseDetail.gamePhase == constants.GamePhase.END_GAME_SCOREBOARD and \
+            gamePhaseDetail.identifyingKeyItem[0] == keyItem.keyItem and gamePhaseDetail.identifyingKeyItem[1] == keyItem.side \
+            and typedValue != constants.SCOREBOARD_PASSES_CHECK_VALUE:
+            print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsingResult.parsedValue}`')
+            print(f'[{gamePhaseDetail.gamePhase}]:  {err}')
+            return None, False    
+
         parsedImage.add(keyItem=keyItem.keyItem, side=keyItem.side, parsingResult=parsingResult)
     return parsedImage, True
 

@@ -58,6 +58,16 @@ class KeyItemDetail:
         If looking up stored images, the maximum distance away the image should be to be considered a match.
     '''
     maximumDistanceForStoredImages:int=field(default_factory=lambda: 10)
+
+    '''
+        The HSV filters to apply to this key item detail -- NULL means apply the default for this key item.
+    '''
+    hsvFilters:list[list]=field(default_factory=lambda: None)
+
+    '''
+        An override, indicating not to apply image transformation to this key item.
+    '''
+    shouldApplyImageTransformation:bool = True
       
 
 
