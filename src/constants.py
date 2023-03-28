@@ -69,6 +69,35 @@ class KeyItem(str, Enum):
     '''
     FLAVOR_TEXT = 'FLAVOR_TEXT'
     
+    SHOTS_ON_GOAL = 'SHOTS_ON_GOAL'
+    
+    HYPER_STRIKES = 'HYPER_STRIKES'
+    
+    ITEMS_USED = 'ITEMS_USED'
+    
+    TACKLES = 'TACKLES'
+    
+    PASSES = 'PASSES'
+    
+    INTERCEPTIONS = 'INTERCEPTIONS'
+    
+    ASSISTS = 'ASSISTS'
+    
+    POSESSION = 'POSESSION'
+    
+    WINNER = 'WINNER'
+    SCOREBOARD_PASSES_CHECK = 'SCOREBOARD_PASSES_CHECK'
+
+SCOREBOARD_STATS = [
+    KeyItem.SHOTS_ON_GOAL,
+    KeyItem.HYPER_STRIKES,
+    KeyItem.ITEMS_USED,
+    KeyItem.TACKLES,
+    KeyItem.PASSES,
+    KeyItem.INTERCEPTIONS,
+    KeyItem.ASSISTS,
+    KeyItem.POSESSION
+]
 
 class GameSide(str, Enum):
     '''

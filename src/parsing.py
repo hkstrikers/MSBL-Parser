@@ -157,7 +157,7 @@ class ParsingResult:
     def parseTimeDuration(self, timeStr:str) -> timedelta:
         minutes, seconds = None, None
         if ':' in timeStr:
-            minutes,seconds = timeStr.split(':')[0], timeStr.split(':')[1]
+            minutes,seconds = int(timeStr.split(':')[0]), int(timeStr.split(':')[1])
         elif len(timeStr) == 4:
             try:
                 minutes = int(timeStr[0])*10 + int(timeStr[1])
@@ -166,6 +166,8 @@ class ParsingResult:
                 raise ValueError(f'`{timeStr}` could not be parsed into time duration.')
         else:
             raise ValueError(f'`{timeStr}` could not be parsed into time duration.')
+        if (seconds // 10) % 10 == 9: # OCR often reads block 2's in the time as 9's so if the ten's place is a 9 just replace it with a 2...
+            seconds = 20 + (seconds % 10)
         return timedelta(minutes=int(minutes), seconds=int(seconds))
 
     def parseToActualValue(self, gamePhase:constants.GamePhase, keyItem:constants.KeyItem, gameSettings:GameSettings):
@@ -214,64 +216,100 @@ class ParsedImage:
         except Exception as err:
             display(result.image)
             return None
-    
+
 @dataclass_json
 @dataclass  
+class ParsedGame:
+    gameName:str
+    keyMoments:dict
+    parsedFrames:list[ParsedImage]
+
+    BUFFER_IN_MILLISECONDS:int = 10000
+
+    def getStartTime(self) -> int:
+        if self.parsedFrames:
+            return self.parsedFrames[0].time
+        else:
+            return None
+
+    def getEndTime(self) -> int:
+        if self.parsedFrames:
+            return self.parsedFrames[-1].time + ParsedGame.END_GAME_BUFFER_IN_MILLISECONDS
+        else:
+            return None
+    
+
+
 class Timeline:
     '''
         Represents the timeline of a video or an individual image.
     '''
-    parsedFrames:list[ParsedImage]
-    parseConfig:ParsingConfig
-    gameSettings:GameSettings = GameSettings()
-    keyTimes:dict=field(default_factory=lambda: dict())
+    def __init__(self, parsedFrames:list[ParsedImage], parseConfig:ParsingConfig):
+        self.parseConfig=parseConfig
+        self._initialize(parsedFrames)
 
-    def _getGameNumber(self, idx:int) -> str:
-        return f'GAME#{idx}'
+    def _getGameNumber(self, idx:int, keyTimes:dict) -> str:
+        if idx == 0 and constants.GamePhase.IN_GAME not in keyTimes:
+            return 'PRE-GAME'
+        elif constants.GamePhase.IN_GAME not in keyTimes:
+            return f'POST-Game #{idx}'
+        else:
+            return f'Game #{idx}'
 
-    def __post_init__(self):
-        self.keyTimes = dict()
+    def _initialize(self, parsedFrames):
+        self.games = {}
+        keyTimes = dict()
+        frames = []
         gameNo = 0
-        gameKey = self._getGameNumber(gameNo)
+        
         # need a buffer because inverted times can be a little off!
         BUFFER = timedelta(seconds=60)
+        GOLDEN_GOAL_TIME = timedelta(seconds=120)
         lastKnownTime = None
-        for idx, frame in enumerate(self.parsedFrames):
+        for idx, frame in enumerate(parsedFrames):
             if not frame or frame.gamePhase == constants.GamePhase.UNKNOWN:
                 continue
             currentTime = frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
-            if (lastKnownTime is None and currentTime is not None) or (lastKnownTime is not None and currentTime is not None and lastKnownTime + BUFFER < currentTime):
+            if (lastKnownTime is None and currentTime is not None)\
+                or (lastKnownTime is not None and currentTime is not None and (lastKnownTime + BUFFER < currentTime) and not(currentTime >= GOLDEN_GOAL_TIME - BUFFER and not(currentTime >= self.parseConfig.gameSettings.time - BUFFER))):              
+                gameKey = self._getGameNumber(gameNo, keyTimes)
+                self.games[gameKey] = ParsedGame(str(gameNo), keyMoments=keyTimes, parsedFrames=frames)
                 gameNo += 1
-                gameKey = self._getGameNumber(gameNo)
-                if gameKey not in self.keyTimes:
-                    self.keyTimes[gameKey] = {}
-            if frame.gamePhase not in self.keyTimes[gameKey]:
-                self.keyTimes[gameKey][frame.gamePhase] = []
+                frames = []
+                keyTimes = dict()
+            frames.append(frame)
+            if frame.gamePhase not in keyTimes:
+                keyTimes[frame.gamePhase] = []
             # avoid duplicates by not having events happen at the same exact time. 
             # ASSUMPTION - cannot score 2 goals in < 1 second.
             if currentTime:
                 lastKnownTime = currentTime            
-            if len(self.keyTimes[gameKey][frame.gamePhase]) > 0:
-                lastFrame = self.parsedFrames[self.keyTimes[gameKey][frame.gamePhase][-1]]
+            if len(keyTimes[frame.gamePhase]) > 0:
+                lastFrame = keyTimes[frame.gamePhase][-1]
                 lastTime = lastFrame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
                 currentTime = frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
                 if lastTime == currentTime:
                     continue
-            self.keyTimes[gameKey][frame.gamePhase].append(idx)
+            keyTimes[frame.gamePhase].append(frame)
+        if len(frames) != 0:
+            gameKey = self._getGameNumber(gameNo, keyTimes)
+            self.games[gameKey] = ParsedGame(str(gameNo), keyMoments=keyTimes, parsedFrames=frames)
 
 
     def isValid(self) -> bool:
-        for game,keyTimes in self.keyTimes.items():
+        for gameNo,game in self.games.items():
+            keyTimes = game.keyMoments
             prevscoreLeft = 0
             prevscoreRight = 0
             prevTime = None
             inGame = keyTimes[constants.GamePhase.IN_GAME]
             isValid = True
             for i in range(len(inGame)):
-                idx = inGame[i]
-                scoreLeft = self.parsedFrames[idx].getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT)
-                scoreRight = self.parsedFrames[idx].getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT)
-                time = self.gameSettings.time.total_seconds()-self.parsedFrames[idx].getValue(constants.KeyItem.TIME, constants.GameSide.NONE).total_seconds()
+                frame = inGame[i]
+                previousFrame = inGame[i-1] if i > 0 else None
+                scoreLeft = frame.getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT)
+                scoreRight = frame.getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT)
+                time = self.parseConfig.gameSettings.time.total_seconds()-frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE).total_seconds()
                 if scoreLeft is None or scoreRight is None:
                     continue
                 if scoreLeft < prevscoreLeft or scoreRight < prevscoreRight:
@@ -281,34 +319,34 @@ class Timeline:
                     display(f'prevTime =`{prevTime}`, prevscoreLeft=`{prevscoreLeft}, prevscoreRight=`{prevscoreRight}`')
                     scoreLeftBox = self.parseConfig.gamePhaseDetails.getKeyItemDetail(constants.GamePhase.IN_GAME, constants.KeyItem.SCORE, constants.GameSide.LEFT).coords.box()
                     scoreRightBox = self.parseConfig.gamePhaseDetails.getKeyItemDetail(constants.GamePhase.IN_GAME, constants.KeyItem.SCORE, constants.GameSide.RIGHT).coords.box()
-                    if i >0:
-                        display(self.parsedFrames[inGame[i-1]].image)
-                        scoreLeftIm = self.parsedFrames[inGame[i-1]].image.crop(scoreLeftBox)
+                    if i > 0:
+                        display(game.parsedFrames[inGame[i-1]].image)
+                        scoreLeftIm = previousFrame.image.crop(scoreLeftBox)
                         display(scoreLeftIm)  
-                        scoreRightIm = self.parsedFrames[inGame[i-1]].image.crop(scoreRightBox)
+                        scoreRightIm = previousFrame.image.crop(scoreRightBox)
                         display(scoreRightIm)
-                    display(self.parsedFrames[idx].image)
-                    display(self.parsedFrames[idx].image.crop(scoreLeftBox))  
-                    display(self.parsedFrames[idx].image.crop(scoreRightBox))  
+                    display(frame.image)
+                    display(frame.image.crop(scoreLeftBox))  
+                    display(frame.image.crop(scoreRightBox))  
                 prevscoreLeft = scoreLeft
                 prevscoreRight = scoreRight
                 prevTime = time
         return isValid
 
-    def _evaluateGame(self, game:dict):
+    def _evaluateGame(self, game:ParsedGame):
         result = {}
-        for gamePhase,indices in game.items():
+        for gamePhase,frames in game.keyMoments.items():
             totalFrames = 0
             missedFrames = 0
             if gamePhase not in {constants.GamePhase.IN_GAME, constants.GamePhase.IN_GAME_FINAL_RESULT_LEFT_HAND_SIDE,constants.GamePhase.IN_GAME_FINAL_RESULT_RIGHT_HAND_SIDE, constants.GamePhase.GOAL_SCORED_LEFT_HAND_SIDE, constants.GamePhase.GOAL_SCORED_RIGHT_HAND_SIDE}:
                 result[gamePhase] = 100
                 continue
-            for i in range(1,len(indices)):
+            for i in range(1,len(frames)):
                 totalFrames += 1
-                currentScoreLeft = self.parsedFrames[indices[i]].getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT) 
-                oldScoreLeft = self.parsedFrames[indices[i-1]].getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT)
-                currentScoreRight = self.parsedFrames[indices[i]].getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT) 
-                oldScoreRight = self.parsedFrames[indices[i-1]].getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT)
+                currentScoreLeft = frames[i].getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT) 
+                oldScoreLeft = frames[i-1].getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT)
+                currentScoreRight = frames[i].getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT) 
+                oldScoreRight = frames[i-1].getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT)
                 if (currentScoreLeft is not None and oldScoreLeft is not None and currentScoreLeft - oldScoreLeft   > 1)\
                 or (currentScoreRight is not None and oldScoreRight is not None and currentScoreRight - oldScoreRight   > 1):
                     missedFrames += 1
@@ -362,17 +400,18 @@ def runOcrOnImage(im:Image, gamePhase:constants.GamePhase, keyItemDetail:KeyItem
         return re.sub(r'\n', '', res), api.AllWordConfidences()
 
 
-def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False,  storedImageCache:ImageStore=None) -> ParsedImage:
+def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False,  storedImageCache:ImageStore=None, displayImages:bool=False) -> ParsedImage:
     parsedImage = ParsedImage(gamePhaseDetail.gamePhase, im, time, gameSettings=gameSettings)
     if debug:
         display(f"[{gamePhaseDetail.gamePhase}]:  Extracting the following areas from the image:")
-        display(drawBoxes(im.copy(), gamePhaseDetail.keyItemDetails))
+        #display(drawBoxes(im.copy(), gamePhaseDetail.keyItemDetails))
     for keyItem in gamePhaseDetail.getKeyItemDetails():
         box = keyItem.coords.box()
         cropped = im.crop(box)
         if debug:
             print(f'[{gamePhaseDetail.gamePhase}]: Outputting cropped image for {keyItem.keyItem} side {keyItem.side}, box={box}')
-            display(cropped)
+            if displayImages:
+                display(cropped)
         transformed = None
         try:
             transformed = imageTransformation(cropped, keyItem.keyItem)
@@ -384,8 +423,9 @@ def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSet
         if debug:
             display(f'[{gamePhaseDetail.gamePhase}]:  ParsedValue: `{parsedVal}`')
             display(f'[{gamePhaseDetail.gamePhase}]:  Confidences: {confidences}')
-            display(f'[{gamePhaseDetail.gamePhase}]:  Image parsed:')
-            display(transformed)
+            if displayImages:
+                display(f'[{gamePhaseDetail.gamePhase}]:  Image parsed:')
+                display(transformed)
         try:
             parsingResult.parseToActualValue(gamePhase=gamePhaseDetail.gamePhase, keyItem=keyItem.keyItem, gameSettings=gameSettings)
         except Exception as err:
@@ -401,11 +441,11 @@ def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSet
         parsedImage.add(keyItem=keyItem.keyItem, side=keyItem.side, parsingResult=parsingResult)
     return parsedImage, True
 
-def tryProcessFrame(frame:np.array, time:float, gamePhaseDetails:GamePhaseDetails, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False, storedImageCache:ImageStore=None) -> tuple:
+def tryProcessFrame(frame:np.array, time:float, gamePhaseDetails:GamePhaseDetails, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False, storedImageCache:ImageStore=None, displayImages:bool=False) -> tuple:
     im = Image.fromarray(frame)
     result = None
     for gamePhaseDetail in gamePhaseDetails.getGamePhaseDetails():
-        result, success = tryParseImage(im, time, gamePhaseDetail, gameSettings, debug, ignoreErrors, storedImageCache=storedImageCache)
+        result, success = tryParseImage(im, time, gamePhaseDetail, gameSettings, debug, ignoreErrors, storedImageCache=storedImageCache, displayImages=displayImages)
         if success:
             return result, True
     return ParsedImage(constants.GamePhase.UNKNOWN, im, time, gameSettings), False
@@ -435,5 +475,8 @@ def parse(parseConfig:ParsingConfig):
     if parseConfig.imageCacheFolderPath is not None:
         storedImageCache = ImageStore(parseConfig.imageCacheFolderPath, parseConfig.gamePhaseDetails)
     results = process(frames, times, parseConfig.gamePhaseDetails, parseConfig.gameSettings, parseConfig.debug, parseConfig.ignoreParsingErrors, storedImageCache=storedImageCache)
-    return Timeline(parsedFrames=results, parseConfig=parseConfig)
+    timeline = Timeline(parsedFrames=results, parseConfig=parseConfig)
+    if parseConfig.debug:
+        return timeline, results
+    return timeline, None
     
