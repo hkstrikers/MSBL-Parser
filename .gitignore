@@ -1,2 +1,3 @@
 notebooks/output/*
 *.pyc
+src/videoutils/out/*

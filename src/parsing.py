@@ -1,15 +1,17 @@
 from dataclasses import dataclass, field
 from datetime import timedelta
+import json
 from dataclasses_json import dataclass_json
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 from pathlib import Path
 import glob
 import os
 import re
 from src.helpers import Coordinates, GamePhaseDetail, GamePhaseDetails, KeyItemDetail, ParsingConfig, GameSettings
-from src.utils.imageUtils import getFramesFromVideo, getImage
+from src.utils.imageUtils import getFramesFromVideo, getImage, extractClips, saveVideo
 from PIL import Image, ImageDraw, ImageFont
 from IPython.display import display
+from moviepy.video.io.VideoFileClip import VideoFileClip
 import cv2
 import src.constants as constants
 import numpy as np
@@ -72,7 +74,7 @@ class ImageStore(object):
                     continue
                 for filename in glob.glob(os.path.join(keyItemFolderPath,'*.jpg')):
                     im = Image.open(filename)
-                    im = imageTransformation(im, keyItemDetail.keyItem)
+                    im = imageTransformation(im, keyItemDetail)
                     imhash = self._getHash(im)
                     valueRepresented = os.path.basename(filename).split(FILE_SEPARATOR)[0]
                     if debug:
@@ -89,13 +91,15 @@ def getFramesFromFileContent(videoOrImageToParsePath          : str,
                              fpsOfInputVideo                  : int,
                              fileType                         : constants.FileType,
                              processEveryXSecondsFromVideo    : int,
-                             outputFolder                     : str=None):
+                             outputFolder                     : str=None,
+                             outputAllParsedFrames            : bool=False):
     if fileType == constants.FileType.VIDEO:
         return getFramesFromVideo(
                     pathToVideo   = videoOrImageToParsePath,
                     fps           = fpsOfInputVideo,
                     everyXSeconds = processEveryXSecondsFromVideo,
-                    outputFolder  = outputFolder
+                    outputFolder  = outputFolder,
+                    outputAllParsedFrames = outputAllParsedFrames
                 )
     elif fileType == constants.FileType.IMAGE:
         return [getImage(videoOrImageToParsePath)], [0]
@@ -109,8 +113,12 @@ def getFramesFromFileContentUsingParsingConfig(parseConfig:ParsingConfig):
                 fpsOfInputVideo                 = parseConfig.fpsOfInputVideo,
                 fileType                        = parseConfig.FileType,
                 processEveryXSecondsFromVideo   = parseConfig.processEveryXSecondsFromVideo,
-                outputFolder                    = parseConfig.outputFolder
+                outputFolder                    = parseConfig.outputFolder,
+                outputAllParsedFrames           = parseConfig.outputAllParsedFrames
             )
+
+def saveVideoUsingParsingConfig(video:VideoFileClip, fileName:str, parseConfig:ParsingConfig):
+    saveVideo(video, outputPath, codec=parseConfig.codec, threads=parseConfig.threads, bitrate=parseConfig.saveVideoAtBitrate)
 
 def drawBoxes(im:Image, keyItems:list[KeyItemDetail], outlineColor:str='blue') -> Image:
     draw = ImageDraw.Draw(im)
@@ -153,9 +161,9 @@ def imageTransformation(im:Image, type:KeyItemDetail) -> Image:
         print('No transformation found')
         return Image.fromarray(cv2Im)
 
+@dataclass_json
 @dataclass
 class ParsingResult:
-    image:Image
     parsedValue:str
     confidences:list
 
@@ -221,15 +229,28 @@ class ParsedImage:
         except Exception as err:
             display(result.image)
             return None
+        
+    def to_dict(self):
+        return {
+            'gamePhase': self.gamePhase,
+            'gameSettings': self.gameSettings.to_dict(),
+            'time': self.time,
+            'parsingResults': {k:v for k,v in self.parsingResults.items()}
+        }
+    
+    def to_json(self):
+        return json.dump(self.to_dict())
+    
+    @classmethod
+    def from_json(jsonStr:str):
+        d = json.loads(jsonStr)
+        return ParsedGame(gameName=d['gameName'], gameSettings=GameSettings.from_dict(d['gameSettings']), time=float(d['time']), parsingResults={k:ParsingResult.from_dict(v) for k,v in d['parsingResults']})
 
-@dataclass_json
 @dataclass  
 class ParsedGame:
     gameName:str
     keyMoments:dict
     parsedFrames:list[ParsedImage]
-
-    BUFFER_IN_MILLISECONDS:int = 10000
 
     def getStartTime(self) -> int:
         if self.parsedFrames:
@@ -239,10 +260,19 @@ class ParsedGame:
 
     def getEndTime(self) -> int:
         if self.parsedFrames:
-            return self.parsedFrames[-1].time + ParsedGame.END_GAME_BUFFER_IN_MILLISECONDS
+            return self.parsedFrames[-1].time
         else:
             return None
     
+    def to_dict(self):
+        return {
+            'gameName': self.gameName,
+            'keyMoments': {k:[i.to_dict() for i in v] for k,v in self.keyMoments.items()}
+        }
+    
+    def to_json(self):
+        return json.dumps(self.to_dict())
+
 
 
 class Timeline:
@@ -271,7 +301,7 @@ class Timeline:
         BUFFER = timedelta(seconds=60)
         GOLDEN_GOAL_TIME = timedelta(seconds=120)
         lastKnownTime = None
-        for idx, frame in enumerate(parsedFrames):
+        for idx, frame in tqdm(enumerate(parsedFrames), desc='Generating timeline...'):
             if not frame or frame.gamePhase == constants.GamePhase.UNKNOWN:
                 continue
             currentTime = frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
@@ -294,6 +324,8 @@ class Timeline:
                 lastTime = lastFrame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
                 currentTime = frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
                 if lastTime == currentTime:
+                    continue
+                if frame.gamePhase == constants.GamePhase.END_GAME_SCOREBOARD: #end game scoreboard doesn't have any TIME value, so instead we only keep the first instance of a scoreboard frame.
                     continue
             keyTimes[frame.gamePhase].append(frame)
         if len(frames) != 0:
@@ -367,8 +399,8 @@ class Timeline:
 
     def evaluateQuality(self):
         quality = {}
-        for game in self.keyTimes.keys():
-            quality[game] = self._evaluateGame(self.keyTimes[game])
+        for gameNo,game in self.games.items():
+            quality[gameNo] = self._evaluateGame(game)
         display(quality)
 
     def dumpAllUnparseableImages(self, folderPath:str):
@@ -386,6 +418,19 @@ class Timeline:
                     print(f'storing in {subFolderCompletePath}')
                     im.save(os.path.join(subFolderCompletePath, f'UNKNOWN_Example_{cnt}.jpg'))
 
+    
+    def gamesAsDicts(self) -> list[dict]:
+        return [g.to_dict() for g in self.games.values()]
+
+    
+    def to_dict(self) -> dict:
+        return {
+            'parseConfig': self.parseConfig,
+            'games': {k:g.to_dict() for k,g in self.games.items()}
+        }
+    
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
 def runOcrOnImage(im:Image, gamePhase:constants.GamePhase, keyItemDetail:KeyItemDetail, debug:bool=False, storedImageCache:ImageStore=None) -> str:
     if storedImageCache:
@@ -418,7 +463,7 @@ def tryParseKeyItem(im:Image, gamePhaseDetail:GamePhaseDetail, keyItem:KeyItemDe
         print(f'[{gamePhaseDetail.gamePhase}]:  Exception encountered when trying to transform image for {keyItem.keyItem} side {keyItem.side}')
         raise err
     parsedVal, confidences = runOcrOnImage(transformed, gamePhaseDetail.gamePhase, keyItem, storedImageCache=storedImageCache, debug=debug)
-    parsingResult = ParsingResult(image=cropped, parsedValue=parsedVal, confidences=confidences)
+    parsingResult = ParsingResult(parsedValue=parsedVal, confidences=confidences)
     if debug:
         display(f'[{gamePhaseDetail.gamePhase}]:  ParsedValue: `{parsedVal}`')
         display(f'[{gamePhaseDetail.gamePhase}]:  Confidences: {confidences}')
@@ -455,7 +500,6 @@ def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSet
             gamePhaseDetail.identifyingKeyItem[0] == keyItem.keyItem and gamePhaseDetail.identifyingKeyItem[1] == keyItem.side \
             and typedValue != constants.SCOREBOARD_PASSES_CHECK_VALUE:
             print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsingResult.parsedValue}`')
-            print(f'[{gamePhaseDetail.gamePhase}]:  {err}')
             return None, False    
 
         parsedImage.add(keyItem=keyItem.keyItem, side=keyItem.side, parsingResult=parsingResult)
@@ -474,7 +518,7 @@ def process(frames:list[np.array], times:list, gamePhaseDetails:GamePhaseDetails
     results = []
     successes = 0
     print(f'Starting to process frames...')
-    for frame, time in tqdm(zip(frames, times), total=len(frames)):
+    for frame, time in tqdm(zip(frames, times), total=len(frames), desc='Processing frames...'):
         result, success = tryProcessFrame(frame, time, gamePhaseDetails, gameSettings, debug, ignoreErrors, storedImageCache=storedImageCache)
         if not success:
             if debug:
@@ -489,6 +533,7 @@ def process(frames:list[np.array], times:list, gamePhaseDetails:GamePhaseDetails
     
 
 def parse(parseConfig:ParsingConfig):
+    print(f'Getting frames from file...')
     frames, times = getFramesFromFileContentUsingParsingConfig(parseConfig)
     print(f'Successfully got frames from the file `{parseConfig.videoOrImageToParsePath}`')
     storedImageCache = None
@@ -499,4 +544,32 @@ def parse(parseConfig:ParsingConfig):
     if parseConfig.debug:
         return timeline, results
     return timeline, None
-    
+
+def split(timeline:Timeline, parseConfig:ParsingConfig):
+    outputBasePath = os.path.join(parseConfig.outputFolder, 'videos')
+    with VideoFileClip(parseConfig.videoOrImageToParsePath) as video:
+        for gameKey, parsedGame in timeline.games.items():
+            outputGamesPath = os.path.join(outputBasePath, 'games', parsedGame.name)
+            Path(outputGamesPath).mkdir(parents=True, exist_ok=True)
+            if parseConfig.outputSplitGames:
+                startTime = (parsedGame.getStartTime() / 60.0) - parseConfig.bufferTimeBeforeGamesInSeconds
+                endTime = (parsedGame.getEndTime() / 60.0) - parseConfig.bufferTimeAfterGamesInSeconds
+                clips = extractClips(video, [(startTime, endTime)])
+                [saveVideoUsingParsingConfig(clip, os.path.join(outputGamesPath, f"{parsedGame.name}.mp4"), parseConfig) for clip in clips]
+            if parseConfig.outputSplitGoals:
+                outputGoalsPath = os.path.join(outputGamesPath, 'goals')
+                Path(outputGoalsPath).mkdir(parents=True, exist_ok=True)
+                goalTimes = []
+                for goalMoment in [constants.GamePhase.GOAL_SCORED_LEFT_HAND_SIDE, constants.GamePhase.GOAL_SCORED_RIGHT_HAND_SIDE]:
+                    for frame in parsedGame.keyMoments[constants.GamePhase.GOAL_SCORED_LEFT_HAND_SIDE]:
+                        goalTimes.append((frame.time / 60.0) - parseConfig.bufferTimeBeforeGoalsInSeconds, (frame.time / 60.0) - parseConfig.bufferTimeAfterGoalsInSeconds, goalMoment)
+                goalTimes = sorted(goalTimes, key=lambda x: x[0])
+                times = [(x[0], x[1]) for x in goalTimes]
+                clips = extractClips(video, times)
+                [saveVideoUsingParsingConfig(clip, os.path.join(outputGoalsPath, f"{parsedGame.name}.goal.{idx}.{str(goalTimes[idx][2])}.mp4"), parseConfig) for idx,clip in enumerate(clips)]
+
+
+
+def run(parseConfig:ParsingConfig):
+    timeline, frames = parse(parseConfig)
+    split(timeline, parseConfig)

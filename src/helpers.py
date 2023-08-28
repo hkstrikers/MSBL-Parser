@@ -172,3 +172,14 @@ class ParsingConfig:
     debug                           : bool=False
     ignoreParsingErrors             : bool=False
     gameSettings                    : GameSettings=GameSettings()
+    outputAllParsedFrames           : bool=False
+    outputSplitGames                : bool=False
+    outputSplitGoals                : bool=False
+    bufferTimeBeforeGamesInSeconds  : int= 10
+    bufferTimeAfterGamesInSeconds   : int= 10
+    bufferTimeBeforeGoalsInSeconds  : int= 10
+    bufferTimeAfterGoalsInSeconds   : int= 10
+    outputVideoCode                 : str=None
+    threads                         : int= 5
+    saveVideoAtBitrate              : str= "200K"
+    codec                           : str=None
