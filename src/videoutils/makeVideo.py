@@ -72,11 +72,7 @@ print(f"arguments are: {args}")
 if args.gameStartTimes and args.winners and len(args.gameStartTimes) != len(args.winners): 
     raise ValueError('Need # games time for gameStartTimes. Last time should represent when to stop the scoreboard display')
 
-file_paths = []
-for pattern in args.input_files:
-    expanded_paths = glob.glob(pattern)
-    file_paths.extend(expanded_paths)
-
+file_paths = args.input_files
 sorted_file_paths = sorted(file_paths)
 
 print("Reading input files from:", sorted_file_paths)
