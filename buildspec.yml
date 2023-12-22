@@ -21,7 +21,6 @@ phases:
       - pip install -U pyinstaller
       #- pip install-r requirements.txt
       - export PATH="$HOME/miniconda/bin:$PATH"
-      - source ~/.bashrc
       - conda env create -y --file environment.yml
     finally:
       - echo "End Install Phase" "Begin Pre-Build Phase"
