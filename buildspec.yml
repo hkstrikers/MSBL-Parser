@@ -4,7 +4,7 @@ env:
 phases:
   install:
     runtime-versions:
-      python: 3.10.9
+      python: 3.11
     commands:
       # Display Python Version in build logs
       - python --version
