@@ -16,8 +16,8 @@ phases:
       - pip install -U pyinstaller
       #- pip install-r requirements.txt
       - $HOME/miniconda/bin/conda init bash
-      - conda env create -y --file environment.yml
-      - conda activate msblparser
+      - $HOME/miniconda/bin/conda env create -y --file environment.yml
+      - $HOME/miniconda/bin/conda activate msblparser
     finally:
       - echo "End Install Phase" "Begin Pre-Build Phase"
 
