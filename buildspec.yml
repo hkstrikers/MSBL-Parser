@@ -15,6 +15,7 @@ phases:
       #- conda config --set always_yes_yes --set changeps1 no
       - conda update -q conda
       - conda info -a
+      - conda install anaconda-client -n base
       # Display Python Version in build logs
       - python --version
       # Installs all required packages for Python and PyInstaller
