@@ -21,14 +21,14 @@ phases:
       - pip install -U pyinstaller
       #- pip install-r requirements.txt
       - export PATH="$HOME/miniconda/bin:$PATH"
-      - conda env create -y --file environment.yml
+      - conda env create -y ./msblparser --file environment.yml
     finally:
       - echo "End Install Phase" "Begin Pre-Build Phase"
 
   build:
     commands:
       # Run PyInstaller to build binaries
-      - conda run -p msblparser pyinstaller -y src/parseScoreboardCli.spec -distpath ./dist
+      - conda run -p ./msblparser pyinstaller -y src/parseScoreboardCli.spec -distpath ./dist
       - echo "Finished PyInstaller creation"
     finally:
       - echo "End Build Phase" "Begin Post-Build Phase"
