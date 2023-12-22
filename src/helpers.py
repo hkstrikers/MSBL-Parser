@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 from datetime import timedelta
 from typing import Callable
-import src.constants as constants
+import constants as constants
 
 @dataclass_json
 @dataclass
@@ -108,7 +108,7 @@ class KeyItemDetails:
 class GamePhaseDetail:
     gamePhase         : constants.GamePhase
     keyItemDetails    : KeyItemDetails
-    identifyingKeyItem: tuple
+    identifyingKeyItem: list[str]
 
     def getKeyItemDetail(self, keyItem:constants.KeyItem, side:constants.GameSide) -> KeyItemDetail:
         return self.keyItemDetails.getKeyItemDetail(keyItem, side)
@@ -119,11 +119,11 @@ class GamePhaseDetail:
 @dataclass_json
 @dataclass
 class GamePhaseDetails:
-    gamePhaseDetails  : list[GamePhaseDetail]
+    details  : list[GamePhaseDetail]
 
     def __post_init__(self):
         self.dictLookup = {}
-        for detail in self.gamePhaseDetails:
+        for detail in self.details:
             if detail.gamePhase not in self.dictLookup:
                 self.dictLookup[detail.gamePhase] = detail
             else:
@@ -151,19 +151,248 @@ class GamePhaseDetails:
         return list(self.dictLookup.keys())
     
     def getGamePhaseDetails(self) -> list[GamePhaseDetail]:
-        return self.gamePhaseDetails
+        return self.details
 
 @dataclass_json
 @dataclass
 class GameSettings:
-    time        : timedelta = timedelta(minutes=4)
+    timeInMinutes        : int = 4
+    
+    def time(self) -> timedelta:
+        return timedelta(minutes=self.timeInMinutes)
+
+
+
+DEFAULT_GAME_PHASE_DETAILS = GamePhaseDetails([
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.IN_GAME,
+        keyItemDetails= KeyItemDetails([
+            KeyItemDetail(
+                Coordinates(875,0,1040,65),
+                constants.KeyItem.TIME,
+                constants.GameSide.NONE,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(185,85,400,125),
+                constants.KeyItem.TEAM_NAME,
+                constants.GameSide.LEFT,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(185,85,400,125).flipAlongYAxis(),
+                constants.KeyItem.TEAM_NAME,
+                constants.GameSide.RIGHT,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(700,20,825,84),
+                constants.KeyItem.SCORE,
+                constants.GameSide.LEFT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(700,20,825,84).flipAlongYAxis(),
+                constants.KeyItem.SCORE,
+                constants.GameSide.RIGHT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+        ]),
+        identifyingKeyItem=(constants.KeyItem.TIME, constants.GameSide.NONE)
+    ),
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.GOAL_SCORED_LEFT_HAND_SIDE,
+        keyItemDetails= KeyItemDetails([
+            KeyItemDetail(
+                Coordinates(250,850,380,900),
+                constants.KeyItem.TIME,
+                constants.GameSide.NONE,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(1100,735,1330,900),
+                constants.KeyItem.SCORE,
+                constants.GameSide.LEFT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(1450,735,1680,900),
+                constants.KeyItem.SCORE,
+                constants.GameSide.RIGHT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(490,850,900,900),
+                constants.KeyItem.TEAM_NAME,
+                constants.GameSide.LEFT,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(250,925,1000,1000),
+                constants.KeyItem.FLAVOR_TEXT,
+                constants.GameSide.NONE,
+                numbersOnly=True,
+                tesserocrOptions={}
+            )
+        ]),
+        identifyingKeyItem=(constants.KeyItem.TIME, constants.GameSide.NONE)
+    ),
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.GOAL_SCORED_RIGHT_HAND_SIDE,
+        keyItemDetails= KeyItemDetails([
+            KeyItemDetail(
+                Coordinates(250,850,380,900).flipAlongYAxis(),
+                constants.KeyItem.TIME,
+                constants.GameSide.NONE,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(1100,735,1330,900).flipAlongYAxis(),
+                constants.KeyItem.SCORE,
+                constants.GameSide.LEFT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(1450,735,1680,900).flipAlongYAxis(),
+                constants.KeyItem.SCORE,
+                constants.GameSide.RIGHT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(490,850,900,900).flipAlongYAxis(),
+                constants.KeyItem.TEAM_NAME,
+                constants.GameSide.RIGHT,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(250,925,1000,1000).flipAlongYAxis(),
+                constants.KeyItem.FLAVOR_TEXT,
+                constants.GameSide.NONE,
+                numbersOnly=True,
+                tesserocrOptions={}
+            )
+        ]),
+        identifyingKeyItem=(constants.KeyItem.TIME, constants.GameSide.NONE)
+    ),
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.IN_GAME_FINAL_RESULT_LEFT_HAND_SIDE,
+        keyItemDetails= KeyItemDetails([
+            KeyItemDetail(
+                Coordinates(1100,735,1330,900),
+                constants.KeyItem.SCORE,
+                constants.GameSide.LEFT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(330,850,700,900),
+                constants.KeyItem.TEAM_NAME,
+                constants.GameSide.LEFT,
+                numbersOnly=False,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(1450,735,1680,900),
+                constants.KeyItem.SCORE,
+                constants.GameSide.RIGHT,
+                numbersOnly=True,
+                tesserocrOptions={}
+            ),
+            KeyItemDetail(
+                Coordinates(250,925,1000,1000),
+                constants.KeyItem.FLAVOR_TEXT,
+                constants.GameSide.NONE,
+                numbersOnly=True,
+                tesserocrOptions={}
+            )
+        ]),
+        identifyingKeyItem=(constants.KeyItem.SCORE, constants.GameSide.LEFT)
+    ),
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.IN_GAME_FINAL_RESULT_RIGHT_HAND_SIDE,
+        keyItemDetails= KeyItemDetails([
+                    KeyItemDetail(
+                        Coordinates(1100,735,1330,900).flipAlongYAxis(),
+                        constants.KeyItem.SCORE,
+                        constants.GameSide.LEFT,
+                        numbersOnly=True,
+                        tesserocrOptions={}
+                    ),
+                    KeyItemDetail(
+                        Coordinates(1450,735,1680,900).flipAlongYAxis(),
+                        constants.KeyItem.SCORE,
+                        constants.GameSide.RIGHT,
+                        numbersOnly=True,
+                        tesserocrOptions={}
+                    ),
+                KeyItemDetail(
+                    Coordinates(330,850,700,900).flipAlongYAxis(),
+                    constants.KeyItem.TEAM_NAME,
+                    constants.GameSide.RIGHT,
+                    numbersOnly=False,
+                    tesserocrOptions={}
+                ),
+                KeyItemDetail(
+                    Coordinates(250,925,1000,1000).flipAlongYAxis(),
+                    constants.KeyItem.FLAVOR_TEXT,
+                    constants.GameSide.NONE,
+                    numbersOnly=True,
+                    tesserocrOptions={}
+                )
+            
+    ]),
+        identifyingKeyItem=(constants.KeyItem.SCORE, constants.GameSide.LEFT)
+    ),
+    GamePhaseDetail(
+        gamePhase=constants.GamePhase.END_GAME_SCOREBOARD,
+        keyItemDetails= KeyItemDetails( [
+            KeyItemDetail(coords=Coordinates(left=890, upper=705, right=1030, lower=750), keyItem=constants.KeyItem.SCOREBOARD_PASSES_CHECK, side=constants.GameSide.NONE, numbersOnly=False, tesserocrOptions={"tessedit_char_whitelist": "PASE"}),
+            KeyItemDetail(coords=Coordinates(left=600, upper=100, right=850, lower=315), keyItem=constants.KeyItem.SCORE, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=225, upper=25, right=600, lower=60), keyItem=constants.KeyItem.TEAM_NAME, side=constants.GameSide.LEFT, numbersOnly=False, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=410, right=598, lower=459), keyItem=constants.KeyItem.SHOTS_ON_GOAL, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=485, right=598, lower=533), keyItem=constants.KeyItem.HYPER_STRIKES, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=554, right=598, lower=607), keyItem=constants.KeyItem.ITEMS_USED, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=628, right=598, lower=681), keyItem=constants.KeyItem.TACKLES, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=698, right=598, lower=750), keyItem=constants.KeyItem.PASSES, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=770, right=598, lower=820), keyItem=constants.KeyItem.INTERCEPTIONS, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=502, upper=845, right=598, lower=895), keyItem=constants.KeyItem.ASSISTS, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=495, upper=915, right=556, lower=965), keyItem=constants.KeyItem.POSESSION, side=constants.GameSide.LEFT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1070, upper=100, right=1320, lower=315), keyItem=constants.KeyItem.SCORE, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=25, right=1695, lower=60), keyItem=constants.KeyItem.TEAM_NAME, side=constants.GameSide.RIGHT, numbersOnly=False, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=410, right=1416, lower=459), keyItem=constants.KeyItem.SHOTS_ON_GOAL, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=485, right=1416, lower=533), keyItem=constants.KeyItem.HYPER_STRIKES, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=554, right=1416, lower=607), keyItem=constants.KeyItem.ITEMS_USED, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=628, right=1416, lower=681), keyItem=constants.KeyItem.TACKLES, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=698, right=1416, lower=750), keyItem=constants.KeyItem.PASSES, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=770, right=1416, lower=820), keyItem=constants.KeyItem.INTERCEPTIONS, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=845, right=1416, lower=895), keyItem=constants.KeyItem.ASSISTS, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1320, upper=915, right=1379, lower=965), keyItem=constants.KeyItem.POSESSION, side=constants.GameSide.RIGHT, numbersOnly=True, tesserocrOptions={}),
+            KeyItemDetail(coords=Coordinates(left=1980-1800, upper=156, right=1980-1480, lower=225), keyItem=constants.KeyItem.WINNER, side=constants.GameSide.LEFT, numbersOnly=False, tesserocrOptions={"tessedit_char_whitelist": "WINER!"}),
+            KeyItemDetail(coords=Coordinates(left=1480, upper=156, right=1800, lower=225), keyItem=constants.KeyItem.WINNER, side=constants.GameSide.RIGHT, numbersOnly=False, tesserocrOptions={"tessedit_char_whitelist": "WINER!"})
+        ]),
+        identifyingKeyItem=(constants.KeyItem.SCOREBOARD_PASSES_CHECK, constants.GameSide.NONE)
+    )
+])
 
 @dataclass_json
 @dataclass
 class ParsingConfig:
     videoOrImageToParsePath         : str
     FileType                        : constants.FileType
-    gamePhaseDetails                : GamePhaseDetails
+    gamePhaseDetails                : GamePhaseDetails = DEFAULT_GAME_PHASE_DETAILS
     imageCacheFolderPath            : str = None
     resolution                      : constants.DefaultResolution = constants.RESOLUTION
     processEveryXSecondsFromVideo   : int = 4
@@ -179,7 +408,9 @@ class ParsingConfig:
     bufferTimeAfterGamesInSeconds   : int= 10
     bufferTimeBeforeGoalsInSeconds  : int= 10
     bufferTimeAfterGoalsInSeconds   : int= 10
-    outputVideoCode                 : str=None
-    threads                         : int= 5
+    outputVideoCodec                : str=None
+    cpus                            : int= None
+    chunksPerCpu                    : int=8
+    minChunkSizeInFrames            : int=1000
     saveVideoAtBitrate              : str= "200K"
     codec                           : str=None

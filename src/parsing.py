@@ -7,16 +7,21 @@ from pathlib import Path
 import glob
 import os
 import re
-from src.helpers import Coordinates, GamePhaseDetail, GamePhaseDetails, KeyItemDetail, ParsingConfig, GameSettings
-from src.utils.imageUtils import getFramesFromVideo, getImage, extractClips, saveVideo
+from config import PARSE_CONFIG
+from helpers import Coordinates, GamePhaseDetail, GamePhaseDetails, KeyItemDetail, ParsingConfig, GameSettings, DEFAULT_GAME_PHASE_DETAILS
+from utils.imageUtils import getFramesFromVideo, getImage, extractClips, saveVideo, getTotalFramesFromVideo
 from PIL import Image, ImageDraw, ImageFont
 from IPython.display import display
 from moviepy.video.io.VideoFileClip import VideoFileClip
 import cv2
-import src.constants as constants
+import constants as constants
 import numpy as np
 import imagehash
 import tesserocr
+import multiprocessing
+from typing_extensions import Self
+import sys
+TESSERDATA_PATH = '/usr/share/tesseract-ocr/4.00/tessdata' #os.path.join(sys.executable, "..", "share", "tessdata")
 
 class ImageStore(object):
     '''
@@ -24,7 +29,7 @@ class ImageStore(object):
         looking up these images later.
     '''
     
-    def __init__(self, folderPath:str, gamePhaseDetails:list[GamePhaseDetail], debug:bool=False):
+    def __init__(self, folderPath:str, gamePhaseDetails:GamePhaseDetails, debug:bool=False):
         '''
             :param folderPath: the base path to the folder which has a folder for each moment and a folder under each moment for each key phase's images.
                 (1) FileNames MUST be delimited by "_" with the first split of the value being the string value to be returned if that image is a match.
@@ -34,14 +39,15 @@ class ImageStore(object):
         '''
         self.hashes, self.values = self._getStoredImages(folderPath, gamePhaseDetails, debug=debug)
 
-    def lookupImageValue(self, im:Image, gamePhase:constants.GamePhase=None, keyItem:constants.KeyItem=None, side:constants.GameSide=None, maximumDistance:int=0, debug:bool=False) -> tuple:
+    def lookupImageValue(self, im:Image, maximumDistance:int=0, debug:bool=False) -> tuple:
         '''
             Looks up the image with the minimum distance (complying with minimum distance <= maximumDistance) to the provided image.
             :param im: the image to look for in the store.
             :param mom
         '''
         if len(self.hashes) == 0:
-            print('WARNING: No images in the cache')
+            if debug:
+                print('[Image cache] WARNING: No images in the cache')
             return None, None
         imHash = self._getHash(im)
         binarydiff = self.hashes != imHash.hash.reshape((1,-1)) # calculate the hamming distance in parallel across all known hashes
@@ -49,12 +55,12 @@ class ImageStore(object):
         minIdx = np.argmin(distances)
         minVals = np.unique(self.values[minIdx]) # get the values with the minimum hamming distance.
         if debug:
-            display(f'Values:\t\t{self.values}\nDistances:\t\t{distances}')
+            display(f'[Image cache]  Values:\t\t{self.values}\nDistances:\t\t{distances}')
         if len(minVals) > 1:
-            raise ValueError(f'Found multiple values of equal distance: {minVals}')
+            raise ValueError(f'[Image cache] Found multiple values of equal distance: {minVals}')
         if distances[minIdx] > maximumDistance:
             return None, None
-        return minVals[0], distances[minIdx]
+        return minVals[0].item(), distances[minIdx].item()
 
     def _getHash(self, im:Image) :
         return imagehash.average_hash(im, hash_size=16)
@@ -65,16 +71,22 @@ class ImageStore(object):
         for gamePhase in gamePhaseDetails.getGamePhases():
             gamePhaseFolderPath = os.path.join(folderPath, gamePhase)
             if not os.path.exists(gamePhaseFolderPath):
+                if debug:
+                    print(f'Skipping reading from `{gamePhaseFolderPath}`...')
                 continue
             for keyItemDetail in gamePhaseDetails.getGamePhaseDetail(gamePhase).getKeyItemDetails():
                 keyItemFolderPath = ImageStore.getFolderPath(gamePhaseFolderPath, keyItemDetail.keyItem, keyItemDetail.side)
+                if debug:
+                    print(f'Trying to read from {keyItemFolderPath}')
                 if not os.path.exists(keyItemFolderPath):
                     if debug:
                         print(f'Skipping reading from `{keyItemFolderPath}`...')
                     continue
                 for filename in glob.glob(os.path.join(keyItemFolderPath,'*.jpg')):
+                    if debug:
+                        display(f'Reading from {filename}')
                     im = Image.open(filename)
-                    im = imageTransformation(im, keyItemDetail)
+                    im = imageTransformation(im, keyItemDetail, debug)
                     imhash = self._getHash(im)
                     valueRepresented = os.path.basename(filename).split(FILE_SEPARATOR)[0]
                     if debug:
@@ -92,7 +104,9 @@ def getFramesFromFileContent(videoOrImageToParsePath          : str,
                              fileType                         : constants.FileType,
                              processEveryXSecondsFromVideo    : int,
                              outputFolder                     : str=None,
-                             outputAllParsedFrames            : bool=False):
+                             outputAllParsedFrames            : bool=False,
+                             startFrame                       : int=None,
+                             endFrame                         : int=None):
     if fileType == constants.FileType.VIDEO:
         return getFramesFromVideo(
                     pathToVideo   = videoOrImageToParsePath,
@@ -122,7 +136,7 @@ def saveVideoUsingParsingConfig(video:VideoFileClip, fileName:str, parseConfig:P
 
 def drawBoxes(im:Image, keyItems:list[KeyItemDetail], outlineColor:str='blue') -> Image:
     draw = ImageDraw.Draw(im)
-    font = ImageFont.truetype("arial")
+    font = ImageFont.load_default()
     for keyItem in keyItems:
         draw.rectangle(keyItem.coords.box(), outline=outlineColor)
     return im
@@ -140,7 +154,7 @@ def imageTransformationForScore(im:np.array) -> Image:
     erosion = cv2.erode(opening,kernel,iterations = 2)
     return Image.fromarray(255-erosion)
 
-def imageTransformation(im:Image, type:KeyItemDetail) -> Image:
+def imageTransformation(im:Image, type:KeyItemDetail, debug:bool=False) -> Image:
     cv2Im = np.array(im)
     if type.hsvFilters is not None:
         lower = np.array(type.hsvFilters[0])
@@ -158,7 +172,8 @@ def imageTransformation(im:Image, type:KeyItemDetail) -> Image:
         (th, newimg) = cv2.threshold(tmp, 50, 255, cv2.THRESH_BINARY)
         return Image.fromarray(newimg)
     else:
-        print('No transformation found')
+        if debug:
+            print('No transformation found')
         return Image.fromarray(cv2Im)
 
 @dataclass_json
@@ -187,7 +202,7 @@ class ParsingResult:
         if keyItem == constants.KeyItem.TIME:
             time = self.parseTimeDuration(self.parsedValue)
             if gamePhase in {constants.GamePhase.GOAL_SCORED_LEFT_HAND_SIDE, constants.GamePhase.GOAL_SCORED_RIGHT_HAND_SIDE}:
-                return gameSettings.time - time - timedelta(seconds=1) # these game phases report time as how much time has passed, add 1 second to deal with rounding.
+                return gameSettings.time() - time - timedelta(seconds=1) # these game phases report time as how much time has passed, add 1 second to deal with rounding.
             return time #otherwise time is passed as time remaning.
         elif keyItem == constants.KeyItem.SCORE: 
             if self.parsedValue == '' or int(self.parsedValue) is None:
@@ -279,8 +294,17 @@ class Timeline:
     '''
         Represents the timeline of a video or an individual image.
     '''
-    def __init__(self, parsedFrames:list[ParsedImage], parseConfig:ParsingConfig):
+    def __init__(self, parsedFrames:list[ParsedImage], parseConfig:ParsingConfig, skipInitializing:bool=False):
+        """_summary_
+
+        Args:
+            parsedFrames (list[ParsedImage]): a list of the parsed images from the video
+            parseConfig (ParsingConfig): the parsing config to reference when re-constructing the timeline.
+            skipInitializing (bool, optional): useful if you want to **not** immediately use the timeline and merge it at a later point.
+        """
         self.parseConfig=parseConfig
+        if skipInitializing:
+            return
         self._initialize(parsedFrames)
 
     def _getGameNumber(self, idx:int, keyTimes:dict) -> str:
@@ -306,7 +330,7 @@ class Timeline:
                 continue
             currentTime = frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE)
             if (lastKnownTime is None and currentTime is not None)\
-                or (lastKnownTime is not None and currentTime is not None and (lastKnownTime + BUFFER < currentTime) and not(currentTime >= GOLDEN_GOAL_TIME - BUFFER and not(currentTime >= self.parseConfig.gameSettings.time - BUFFER))):              
+                or (lastKnownTime is not None and currentTime is not None and (lastKnownTime + BUFFER < currentTime) and not(currentTime >= GOLDEN_GOAL_TIME - BUFFER and not(currentTime >= self.parseConfig.gameSettings.time() - BUFFER))):              
                 gameKey = self._getGameNumber(gameNo, keyTimes)
                 self.games[gameKey] = ParsedGame(str(gameNo), keyMoments=keyTimes, parsedFrames=frames)
                 gameNo += 1
@@ -346,7 +370,7 @@ class Timeline:
                 previousFrame = inGame[i-1] if i > 0 else None
                 scoreLeft = frame.getValue(constants.KeyItem.SCORE, constants.GameSide.LEFT)
                 scoreRight = frame.getValue(constants.KeyItem.SCORE, constants.GameSide.RIGHT)
-                time = self.parseConfig.gameSettings.time.total_seconds()-frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE).total_seconds()
+                time = self.parseConfig.gameSettings.time().total_seconds()-frame.getValue(constants.KeyItem.TIME, constants.GameSide.NONE).total_seconds()
                 if scoreLeft is None or scoreRight is None:
                     continue
                 if scoreLeft < prevscoreLeft or scoreRight < prevscoreRight:
@@ -431,15 +455,27 @@ class Timeline:
     
     def to_json(self):
         return json.dumps(self.to_dict())
+    
+def mergeTimelines(timelines:list[Timeline], parseConfig:ParsingConfig):
+    """_summary_
 
-def runOcrOnImage(im:Image, gamePhase:constants.GamePhase, keyItemDetail:KeyItemDetail, debug:bool=False, storedImageCache:ImageStore=None) -> str:
+    Args:
+        timelines (list[Timeline]): must be in sorted order, the mergeTimelines will merge these in order.
+    """
+    allParsedFrames = []
+    [allParsedFrames.extend(t.parsedImages) for t in timelines]
+    return Timeline(parsedFrames=allParsedFrames, parseConfig=parseConfig, skipInitializing=False)
+
+def runOcrOnImage(im:Image, keyItemDetail:KeyItemDetail, debug:bool=False, storedImageCache:ImageStore=None) -> str:
     if storedImageCache:
-        value, dist = storedImageCache.lookupImageValue(im, gamePhase, keyItemDetail.keyItem, keyItemDetail.side, keyItemDetail.maximumDistanceForStoredImages)
+        if debug:
+            print(f'[Ocr | Stored image] Calling stored image cache to lookup image...')
+        value, dist = storedImageCache.lookupImageValue(im, keyItemDetail.maximumDistanceForStoredImages, debug=debug)
         if value is not None:
             if debug:
-                print(f'Found item in STORED IMAGES with distance of `{dist}` and value of `{value}`')
+                print(f'[Ocr | Stored image] Found item in STORED IMAGES with distance of `{dist}` and value of `{value}`')
             return value, [dist]
-    with tesserocr.PyTessBaseAPI() as api:
+    with tesserocr.PyTessBaseAPI(path=TESSERDATA_PATH) as api:
         api.SetPageSegMode(tesserocr.PSM.SINGLE_LINE)
         for option,value in keyItemDetail.tesserocrOptions.items():
             api.SetVariable(option, value)
@@ -454,15 +490,14 @@ def tryParseKeyItem(im:Image, gamePhaseDetail:GamePhaseDetail, keyItem:KeyItemDe
     cropped = im.crop(box)
     if debug:
         print(f'[{gamePhaseDetail.gamePhase}]: Outputting cropped image for {keyItem.keyItem} side {keyItem.side}, box={box}')
-        if displayImages:
-            display(cropped)
+        display(cropped)
     transformed = None
     try:
-        transformed = imageTransformation(cropped, keyItem) if keyItem.shouldApplyImageTransformation else cropped
+        transformed = imageTransformation(cropped, keyItem, debug) if keyItem.shouldApplyImageTransformation else cropped
     except Exception as err:
         print(f'[{gamePhaseDetail.gamePhase}]:  Exception encountered when trying to transform image for {keyItem.keyItem} side {keyItem.side}')
         raise err
-    parsedVal, confidences = runOcrOnImage(transformed, gamePhaseDetail.gamePhase, keyItem, storedImageCache=storedImageCache, debug=debug)
+    parsedVal, confidences = runOcrOnImage(transformed, keyItem, storedImageCache=storedImageCache, debug=debug)
     parsingResult = ParsingResult(parsedValue=parsedVal, confidences=confidences)
     if debug:
         display(f'[{gamePhaseDetail.gamePhase}]:  ParsedValue: `{parsedVal}`')
@@ -472,12 +507,25 @@ def tryParseKeyItem(im:Image, gamePhaseDetail:GamePhaseDetail, keyItem:KeyItemDe
             display(transformed)
     return parsingResult
 
-
+def tryParseImageUsingDefaultSettings(im:Image, gamePhase:constants.GamePhase, gameSettings:GameSettings=None, debug:bool=False, ignoreErrors:bool=False,  imageCacheFolder:str=None, displayImages:bool=False, useConfigAsBackup:bool=True) -> ParsedImage:
+    details = PARSE_CONFIG.gamePhaseDetails.getGamePhaseDetail(gamePhase)
+    storedImageCache = None
+    tmpDetails = GamePhaseDetails([details])
+    if imageCacheFolder:
+        storedImageCache = ImageStore(imageCacheFolder, tmpDetails, debug=debug)
+    elif useConfigAsBackup and PARSE_CONFIG.imageCacheFolderPath:
+        storedImageCache = ImageStore(PARSE_CONFIG.imageCacheFolderPath, tmpDetails, debug=debug)
+    if not gameSettings and useConfigAsBackup:
+        gameSettings = PARSE_CONFIG.gameSettings
+    return tryParseImage(im, None, details, gameSettings=gameSettings, debug=debug, storedImageCache=storedImageCache)
+        
 def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSettings:GameSettings, debug:bool=False, ignoreErrors:bool=False,  storedImageCache:ImageStore=None, displayImages:bool=False) -> ParsedImage:
     parsedImage = ParsedImage(gamePhaseDetail.gamePhase, im, time, gameSettings=gameSettings)
     if debug:
         display(f"[{gamePhaseDetail.gamePhase}]:  Extracting the following areas from the image:")
-        #display(drawBoxes(im.copy(), gamePhaseDetail.keyItemDetails))
+        display(drawBoxes(im.copy(), gamePhaseDetail.getKeyItemDetails()))
+        #tmpIm = drawBoxes(im.copy(), gamePhaseDetail.getKeyItemDetails())
+        #tmpIm.save('tmp_boxes.jpg')
     for keyItem in gamePhaseDetail.getKeyItemDetails():
         parsingResult = tryParseKeyItem(im, gamePhaseDetail, keyItem, gameSettings, debug, ignoreErrors, storedImageCache, displayImages)
 
@@ -496,10 +544,12 @@ def tryParseImage(im:Image, time:float, gamePhaseDetail:GamePhaseDetail, gameSet
                     print('Retrying SCORE for scoreboard with no transformation...')
                 keyItem.shouldApplyImageTransformation = False
                 parsingResult = tryParseKeyItem(im, gamePhaseDetail, keyItem, gameSettings, debug, ignoreErrors, storedImageCache, displayImages)
-        if gamePhaseDetail.gamePhase == constants.GamePhase.END_GAME_SCOREBOARD and \
-            gamePhaseDetail.identifyingKeyItem[0] == keyItem.keyItem and gamePhaseDetail.identifyingKeyItem[1] == keyItem.side \
+        if gamePhaseDetail.gamePhase == constants.GamePhase.END_GAME_SCOREBOARD \
+            and gamePhaseDetail.identifyingKeyItem[0] == keyItem.keyItem \
+            and gamePhaseDetail.identifyingKeyItem[1] == keyItem.side \
             and typedValue != constants.SCOREBOARD_PASSES_CHECK_VALUE:
-            print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsingResult.parsedValue}`')
+            if debug:
+                print(f'[{gamePhaseDetail.gamePhase}]:  Was not {gamePhaseDetail.gamePhase} because {keyItem.keyItem} could not be parsed. Text=`{parsingResult.parsedValue}`')
             return None, False    
 
         parsedImage.add(keyItem=keyItem.keyItem, side=keyItem.side, parsingResult=parsingResult)
@@ -533,14 +583,34 @@ def process(frames:list[np.array], times:list, gamePhaseDetails:GamePhaseDetails
     
 
 def parse(parseConfig:ParsingConfig):
+    totalFrames = getTotalFramesFromVideo(parseConfig.videoOrImageToParsePath)
+    cpus = parseConfig.cpus if parseConfig.cpus else multiprocessing.cpu_count
+    chunkSize = max(parseConfig.minChunkSizeInFrames, totalFrames // cpus )
+    frameChunks = [[i, i+chunkSize] for i in range(0, totalFrames, chunkSize)]  # split the frames into chunk lists
+    frameChunks[-1][-1] = min(frameChunks[-1][-1], totalFrames-1)  # make sure last chunk has correct end frame, also handles case chunk_size < total
+    if parseConfig.imageCacheFolderPath is not None:
+        storedImageCache = ImageStore(parseConfig.imageCacheFolderPath, parseConfig.gamePhaseDetails)
+    with multiprocessing.ProcessPoolExecutor(max_workers=cpus) as executor:
+        futures = [executor.submit(parseFrames, parseConfig, f[0], f[1], storedImageCache)
+                   for f in frameChunks]  # submit the processes: extract_frames(...)
+        with tqdm(total=len(frameChunks)-1) as pbar:
+            for i, f in enumerate(multiprocessing.as_completed(futures)):  # as each process completes
+                pbar.update(1)
+    debugResults = []
+    timelines = []
+    for f in futures:
+        timeline, debugResult = f.result()
+        timelines.append(timeline)
+        debugResults.append(debugResult)
+    mergedTimeline = mergeTimelines(timelines, parseConfig)
+    return mergedTimeline, debugResults
+
+def parseFrames(parseConfig:ParsingConfig, startFrame:int, endFrame:int, imageStore:ImageStore):
     print(f'Getting frames from file...')
     frames, times = getFramesFromFileContentUsingParsingConfig(parseConfig)
     print(f'Successfully got frames from the file `{parseConfig.videoOrImageToParsePath}`')
-    storedImageCache = None
-    if parseConfig.imageCacheFolderPath is not None:
-        storedImageCache = ImageStore(parseConfig.imageCacheFolderPath, parseConfig.gamePhaseDetails)
-    results = process(frames, times, parseConfig.gamePhaseDetails, parseConfig.gameSettings, parseConfig.debug, parseConfig.ignoreParsingErrors, storedImageCache=storedImageCache)
-    timeline = Timeline(parsedFrames=results, parseConfig=parseConfig)
+    results = process(frames, times, parseConfig.gamePhaseDetails, parseConfig.gameSettings, parseConfig.debug, parseConfig.ignoreParsingErrors, storedImageCache=imageStore)
+    timeline = Timeline(parsedFrames=results, parseConfig=parseConfig, skipInitializing=True)
     if parseConfig.debug:
         return timeline, results
     return timeline, None

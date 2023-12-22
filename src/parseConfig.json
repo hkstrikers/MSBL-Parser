@@ -1,0 +1,796 @@
+{
+    "videoOrImageToParsePath": "C:\\Users\\hkuser\\Videos\\clip.mkv",
+    "FileType": "VIDEO",
+    "gamePhaseDetails": {
+        "details": [
+            {
+                "gamePhase": "IN_GAME",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 875,
+                                "upper": 0,
+                                "right": 1040,
+                                "lower": 65
+                            },
+                            "keyItem": "TIME",
+                            "side": "NONE",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 185,
+                                "upper": 85,
+                                "right": 400,
+                                "lower": 125
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "LEFT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1520,
+                                "upper": 85,
+                                "right": 1735,
+                                "lower": 125
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "RIGHT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 700,
+                                "upper": 20,
+                                "right": 825,
+                                "lower": 84
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1095,
+                                "upper": 20,
+                                "right": 1220,
+                                "lower": 84
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "TIME",
+                    "NONE"
+                ]
+            },
+            {
+                "gamePhase": "GOAL_SCORED_LEFT_HAND_SIDE",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 250,
+                                "upper": 850,
+                                "right": 380,
+                                "lower": 900
+                            },
+                            "keyItem": "TIME",
+                            "side": "NONE",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1100,
+                                "upper": 735,
+                                "right": 1330,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1450,
+                                "upper": 735,
+                                "right": 1680,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 490,
+                                "upper": 850,
+                                "right": 900,
+                                "lower": 900
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "LEFT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 250,
+                                "upper": 925,
+                                "right": 1000,
+                                "lower": 1000
+                            },
+                            "keyItem": "FLAVOR_TEXT",
+                            "side": "NONE",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "TIME",
+                    "NONE"
+                ]
+            },
+            {
+                "gamePhase": "GOAL_SCORED_RIGHT_HAND_SIDE",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 1540,
+                                "upper": 850,
+                                "right": 1670,
+                                "lower": 900
+                            },
+                            "keyItem": "TIME",
+                            "side": "NONE",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 590,
+                                "upper": 735,
+                                "right": 820,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 240,
+                                "upper": 735,
+                                "right": 470,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1020,
+                                "upper": 850,
+                                "right": 1430,
+                                "lower": 900
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "RIGHT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 920,
+                                "upper": 925,
+                                "right": 1670,
+                                "lower": 1000
+                            },
+                            "keyItem": "FLAVOR_TEXT",
+                            "side": "NONE",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "TIME",
+                    "NONE"
+                ]
+            },
+            {
+                "gamePhase": "IN_GAME_FINAL_RESULT_LEFT_HAND_SIDE",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 1100,
+                                "upper": 735,
+                                "right": 1330,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 330,
+                                "upper": 850,
+                                "right": 700,
+                                "lower": 900
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "LEFT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1450,
+                                "upper": 735,
+                                "right": 1680,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 250,
+                                "upper": 925,
+                                "right": 1000,
+                                "lower": 1000
+                            },
+                            "keyItem": "FLAVOR_TEXT",
+                            "side": "NONE",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "SCORE",
+                    "LEFT"
+                ]
+            },
+            {
+                "gamePhase": "IN_GAME_FINAL_RESULT_RIGHT_HAND_SIDE",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 590,
+                                "upper": 735,
+                                "right": 820,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 240,
+                                "upper": 735,
+                                "right": 470,
+                                "lower": 900
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1220,
+                                "upper": 850,
+                                "right": 1590,
+                                "lower": 900
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "RIGHT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 920,
+                                "upper": 925,
+                                "right": 1670,
+                                "lower": 1000
+                            },
+                            "keyItem": "FLAVOR_TEXT",
+                            "side": "NONE",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "SCORE",
+                    "LEFT"
+                ]
+            },
+            {
+                "gamePhase": "SCOREBOARD",
+                "keyItemDetails": {
+                    "keyItemDetails": [
+                        {
+                            "coords": {
+                                "left": 890,
+                                "upper": 705,
+                                "right": 1030,
+                                "lower": 750
+                            },
+                            "keyItem": "SCOREBOARD_PASSES_CHECK",
+                            "side": "NONE",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {
+                                "tessedit_char_whitelist": "PASE"
+                            },
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 600,
+                                "upper": 100,
+                                "right": 850,
+                                "lower": 315
+                            },
+                            "keyItem": "SCORE",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 225,
+                                "upper": 25,
+                                "right": 600,
+                                "lower": 60
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "LEFT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 410,
+                                "right": 598,
+                                "lower": 459
+                            },
+                            "keyItem": "SHOTS_ON_GOAL",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 485,
+                                "right": 598,
+                                "lower": 533
+                            },
+                            "keyItem": "HYPER_STRIKES",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 554,
+                                "right": 598,
+                                "lower": 607
+                            },
+                            "keyItem": "ITEMS_USED",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 628,
+                                "right": 598,
+                                "lower": 681
+                            },
+                            "keyItem": "TACKLES",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 698,
+                                "right": 598,
+                                "lower": 750
+                            },
+                            "keyItem": "PASSES",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 770,
+                                "right": 598,
+                                "lower": 820
+                            },
+                            "keyItem": "INTERCEPTIONS",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 502,
+                                "upper": 845,
+                                "right": 598,
+                                "lower": 895
+                            },
+                            "keyItem": "ASSISTS",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 495,
+                                "upper": 915,
+                                "right": 556,
+                                "lower": 965
+                            },
+                            "keyItem": "POSESSION",
+                            "side": "LEFT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1070,
+                                "upper": 100,
+                                "right": 1320,
+                                "lower": 315
+                            },
+                            "keyItem": "SCORE",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 25,
+                                "right": 1695,
+                                "lower": 60
+                            },
+                            "keyItem": "TEAM_NAME",
+                            "side": "RIGHT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 410,
+                                "right": 1416,
+                                "lower": 459
+                            },
+                            "keyItem": "SHOTS_ON_GOAL",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 485,
+                                "right": 1416,
+                                "lower": 533
+                            },
+                            "keyItem": "HYPER_STRIKES",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 554,
+                                "right": 1416,
+                                "lower": 607
+                            },
+                            "keyItem": "ITEMS_USED",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 628,
+                                "right": 1416,
+                                "lower": 681
+                            },
+                            "keyItem": "TACKLES",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 698,
+                                "right": 1416,
+                                "lower": 750
+                            },
+                            "keyItem": "PASSES",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 770,
+                                "right": 1416,
+                                "lower": 820
+                            },
+                            "keyItem": "INTERCEPTIONS",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 845,
+                                "right": 1416,
+                                "lower": 895
+                            },
+                            "keyItem": "ASSISTS",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1320,
+                                "upper": 915,
+                                "right": 1379,
+                                "lower": 965
+                            },
+                            "keyItem": "POSESSION",
+                            "side": "RIGHT",
+                            "numbersOnly": true,
+                            "tesserocrOptions": {},
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 120,
+                                "upper": 156,
+                                "right": 440,
+                                "lower": 225
+                            },
+                            "keyItem": "WINNER",
+                            "side": "LEFT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {
+                                "tessedit_char_whitelist": "WINER!"
+                            },
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        },
+                        {
+                            "coords": {
+                                "left": 1480,
+                                "upper": 156,
+                                "right": 1800,
+                                "lower": 225
+                            },
+                            "keyItem": "WINNER",
+                            "side": "RIGHT",
+                            "numbersOnly": false,
+                            "tesserocrOptions": {
+                                "tessedit_char_whitelist": "WINER!"
+                            },
+                            "maximumDistanceForStoredImages": 10,
+                            "hsvFilters": null,
+                            "shouldApplyImageTransformation": true
+                        }
+                    ]
+                },
+                "identifyingKeyItem": [
+                    "SCOREBOARD_PASSES_CHECK",
+                    "NONE"
+                ]
+            }
+        ]
+    },
+    "imageCacheFolderPath": "..\\src\\data",
+    "resolution": {
+        "HEIGHT": 1080,
+        "WIDTH": 1920
+    },
+    "processEveryXSecondsFromVideo": 5,
+    "fpsOfInputVideo": 30,
+    "outputFolder": null,
+    "debug": false,
+    "ignoreParsingErrors": false,
+    "gameSettings": {
+        "timeInMinutes": 4
+    },
+    "outputAllParsedFrames": false,
+    "outputSplitGames": false,
+    "outputSplitGoals": false,
+    "bufferTimeBeforeGamesInSeconds": 10,
+    "bufferTimeAfterGamesInSeconds": 10,
+    "bufferTimeBeforeGoalsInSeconds": 10,
+    "bufferTimeAfterGoalsInSeconds": 10,
+    "outputVideoCodec": null,
+    "cpus": null,
+    "chunksPerCpu": 8,
+    "minChunkSizeInFrames": 1000,
+    "saveVideoAtBitrate": "200K",
+    "codec": null
+}

@@ -1,6 +1,8 @@
 from enum import Enum
 from dataclasses import dataclass,field
 
+from dataclasses_json import dataclass_json
+
 class GamePhase(str, Enum):
     '''
         Represents a phase of a game, each moment is made up of one or more KeyItem's.
@@ -110,6 +112,8 @@ class GameSide(str, Enum):
     RIGHT   = 'RIGHT'
     NONE    = 'NONE'
 
+@dataclass_json
+@dataclass
 class DefaultResolution:
     HEIGHT    : int = 1080
     WIDTH     : int = 1920

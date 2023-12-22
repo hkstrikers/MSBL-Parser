@@ -8,13 +8,21 @@ import sys
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
 
-def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputFolder:str=None, outputAllParsedFrames:bool=False) -> tuple:
+def getTotalFramesFromVideo(pathToVideo:str) -> int:
+    return int(cv2.VideoCapture(pathToVideo).get(cv2.CAP_PROP_FRAME_COUNT))
+
+def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputFolder:str=None, outputAllParsedFrames:bool=False, startFrame:int=None, endFrame:int=None) -> tuple:
+
     if outputAllParsedFrames and not outputFolder:
         raise ValueError(f"outputFolder must be specified if outputAllParsedFrames=True!")
     vidcap = cv2.VideoCapture(pathToVideo)
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-    success,image = vidcap.read()
-    count = 0
+    if startFrame is None:  # if start isn't specified lets assume 0
+        startFrame = 0
+    if endFrame is None:  # if end isn't specified assume the end of the video
+        endFrame = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    vidcap.set(1, startFrame)  # set the starting frame of the capture
+    count = startFrame  # keep track of which frame we are up to, starting from start
 
     if outputFolder:
         outputDir = os.path.join(outputFolder,'allParsedFrames')
@@ -24,7 +32,7 @@ def getFramesFromVideo(pathToVideo:str, fps:int=60, everyXSeconds:int=4, outputF
     times = []
     if outputAllParsedFrames:
         print(f'INFO: outputAllParsedFrames={outputAllParsedFrames} this means all frames will be saved in {outputFolder}. This may take a while...disable this option to speed up processing.')
-    for count in tqdm(range(0, frame_count, int(fps*everyXSeconds))):
+    for count in tqdm(range(startFrame, endFrame, int(fps*everyXSeconds))):
         vidcap.set(cv2.CAP_PROP_POS_FRAMES, count)
         if not vidcap.isOpened():
             vidcap.release()
