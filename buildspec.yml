@@ -17,7 +17,7 @@ phases:
       #- pip install-r requirements.txt
       - $HOME/miniconda/bin/conda init bash
       - export PATH="$HOME/miniconda/bin:$PATH"
-      - source "$HOME/miniconda/bin/activate"
+      - source $HOME/miniconda/bin/activate
       - $HOME/miniconda/bin/conda env create -y --file environment.yml
       - source $HOME/miniconda/etc/profile.d/conda.sh
       - conda activate msblparser
