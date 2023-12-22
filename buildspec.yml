@@ -19,7 +19,7 @@ phases:
       - export PATH="$HOME/miniconda/bin:$PATH"
       - source "$HOME/miniconda/bin/activate"
       - $HOME/miniconda/bin/conda env create -y --file environment.yml
-      - source $HOME/miniconda3/etc/profile.d/conda.sh
+      - source $HOME/miniconda/etc/profile.d/conda.sh
       - conda activate msblparser
     finally:
       - echo "End Install Phase" "Begin Pre-Build Phase"
