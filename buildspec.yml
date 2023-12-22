@@ -6,17 +6,24 @@ phases:
     runtime-versions:
       python: 3.11
     commands:
+      # Downloads NSIS packager from our S3 bucket
+      - curl -sL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  -O $env:CODEBUILD_SRC_DIR/miniconda3.sh
+      # Silently installs NSIS software for All Users on CodeBuild
+      - bash $env:CODEBUILD_SRC_DIR/miniconda3.sh -b -p $HOME/miniconda
       # Display Python Version in build logs
       - python --version
       # Installs all required packages for Python and PyInstaller
       - pip install -U pyinstaller
-      - pip install -q -r requirements.txt
+      #- pip install-r requirements.txt
+      - $HOME/miniconda env create -y --file environment.yml
+      - $HOME/miniconda activate msblparser
     finally:
       - echo "End Install Phase" "Begin Pre-Build Phase"
 
   build:
     commands:
       # Run PyInstaller to build binaries
+      - $HOME/miniconda activate msblparser
       - pyinstaller -y src/parseScoreboardCli.spec -distpath ./dist
       - echo "Finished PyInstaller creation"
     finally:
