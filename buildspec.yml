@@ -29,8 +29,7 @@ phases:
   build:
     commands:
       # Run PyInstaller to build binaries
-      - conda activate msblparser
-      - pyinstaller -y src/parseScoreboardCli.spec -distpath $env:CODEBUILD_SRC_DIR/dist
+      - conda run -n msblparser pyinstaller -y src/parseScoreboardCli.spec -distpath $env:CODEBUILD_SRC_DIR/dist
       - echo "Finished PyInstaller creation"
     finally:
       - echo "End Build Phase" "Begin Post-Build Phase"
