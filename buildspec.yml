@@ -1,0 +1,43 @@
+version: 0.2
+env:
+  shell: bash
+phases:
+  install:
+    runtime-versions:
+      python: 3.10.9
+    commands:
+      # Display Python Version in build logs
+      - python --version
+      # Installs all required packages for Python and PyInstaller
+      - pip install -U pyinstaller
+      - pip install -q -r requirements.txt
+    finally:
+      - echo "End Install Phase" "Begin Pre-Build Phase"
+
+  build:
+    commands:
+      # Run PyInstaller to build binaries
+      - pyinstaller -y src/parseScoreboardCli.spec -distpath ./dist
+      - echo "Finished PyInstaller creation"
+    finally:
+      - echo "End Build Phase" "Begin Post-Build Phase"
+
+  post_build:
+    commands:
+      - echo "Finished build process"
+#reports:
+  #report-name-or-arn:
+    #files:
+      # - location
+      # - location
+    #base-directory: location
+    #discard-paths: yes
+    #file-format: JunitXml | CucumberJson
+artifacts:
+  files:
+    - '**/*'
+  #discard-paths: yes
+  base-directory: $Env:CODEBUILD_SRC_DIR/dist
+#cache:
+  #paths:
+    # - paths
