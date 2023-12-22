@@ -28,7 +28,7 @@ phases:
   build:
     commands:
       # Run PyInstaller to build binaries
-      - conda run -p ./msblparser pyinstaller -y src/parseScoreboardCli.spec -distpath ./dist
+      - conda run -p ./msblparser pyinstaller -y src/parseScoreboardCli.spec -distpath $env:CODEBUILD_SRC_DIR/dist
       - echo "Finished PyInstaller creation"
     finally:
       - echo "End Build Phase" "Begin Post-Build Phase"
@@ -48,7 +48,7 @@ artifacts:
   files:
     - '**/*'
   #discard-paths: yes
-  base-directory: $Env:CODEBUILD_SRC_DIR/dist
+  base-directory: $env:CODEBUILD_SRC_DIR/dist
 #cache:
   #paths:
     # - paths
